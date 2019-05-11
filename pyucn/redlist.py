@@ -11,7 +11,7 @@ import time
 from terms import Url
 
 
-def make_request(url, token):
+def _make_request(url, token):
     """Utility to make a request and return JSON data"""
 
     response = requests.get(url=url, params={"token": token})
@@ -25,7 +25,7 @@ def make_request(url, token):
         return result
 
 
-def make_throttle_hook(timeout=0.1):
+def _make_throttle_hook(timeout=0.1):
     """Returns a hook that sleeps for timeout seconds if response is
     from cache.
     """
@@ -38,7 +38,7 @@ def make_throttle_hook(timeout=0.1):
     return hook
 
 
-def search_redlist(search_term, base_url, term_type="id", omit_type=False):
+def _search_redlist(search_term, base_url, term_type="id", omit_type=False):
         """Search a Red List API endpoint for a species, given a name or id.
 
         parameters:
@@ -56,7 +56,7 @@ def search_redlist(search_term, base_url, term_type="id", omit_type=False):
         if field not in ["name", "id"]:
             raise ValueError("Not a recognised species search field")
 
-        return make_request(url, self.token)
+        return _make_request(url, self.token)
 
 
 class redList(object):
@@ -80,7 +80,7 @@ class redList(object):
         else:
             self.session = requests.Session()
 
-        self.session.hooks = {"response": make_throttle_hook(delay)}
+        self.session.hooks = {"response": _make_throttle_hook(delay)}
 
 
     def get_redlist(self, page):
@@ -91,7 +91,7 @@ class redList(object):
         """
         url = Url.redlist + f'{page}'
         
-        return make_request(url, self.token)
+        return _make_request(url, self.token)
 
 
     def search_assessment(self, species, search_type="id"):
@@ -106,7 +106,7 @@ class redList(object):
         if search_type == "name":
             omit_type = True
 
-        return search_redlist(species, Url.species, term_type=search_type, omit_type=omit_type)
+        return _search_redlist(species, Url.species, term_type=search_type, omit_type=omit_type)
 
 
     def search_threats(self, species, search_type="id"):
@@ -116,7 +116,7 @@ class redList(object):
         species - species name or id
         search_type - whether you're searching by name or id
         """
-        return search_threats(species, Url.threats, term_type=search_type)
+        return _search_redlist(species, Url.threats, term_type=search_type)
 
     
     def search_habitats(self, species, search_type="id"):
@@ -126,7 +126,7 @@ class redList(object):
         species - species name or id
         search_type - whether you're searching by name or id
         """
-        return search_threats(species, Url.habitats, term_type=search_type)
+        return _search_redlist(species, Url.habitats, term_type=search_type)
 
     def search_countries(self, species, search_type="id"):
         """Search for countries a species occurs in.
@@ -135,7 +135,7 @@ class redList(object):
         species - species name or id
         search_type - whether you're searching by name or id
         """
-        return search_threats(species, Url.countries, term_type=search_type)
+        return _search_redlist(species, Url.countries, term_type=search_type)
 
     def search_measures(self, species, search_type="id"):
         """Search for conservation measures of a species.
@@ -144,7 +144,7 @@ class redList(object):
         species - species name or id
         search_type - whether you're searching by name or id
         """
-        return search_threats(species, Url.conservation_measures, term_type=search_type)
+        return _search_redlist(species, Url.conservation_measures, term_type=search_type)
 
     def search_citation(self, species, search_type="id"):
         """Search for the citation string for a species.
@@ -153,7 +153,7 @@ class redList(object):
         species - species name or id
         search_type - whether you're searching by name or id
         """
-        return search_threats(species, Url.citation, term_type=search_type)
+        return _search_redlist(species, Url.citation, term_type=search_type)
 
     def search_narrative(self, species, search_type="id"):
         """Search for the assessment narrative of a species.
@@ -167,7 +167,7 @@ class redList(object):
         if search_type == "name":
             omit_type = True
 
-        return search_threats(species, Url.narrative, term_type=search_type)
+        return _search_redlist(species, Url.narrative, term_type=search_type)
 
     def search_forms(self, species, search_type="id"):
         """Search for growth forms of a species.
@@ -176,7 +176,7 @@ class redList(object):
         species - species name or id
         search_type - whether you're searching by name or id
         """
-        return search_threats(species, Url.growth_forms, term_type=search_type)
+        return _search_redlist(species, Url.growth_forms, term_type=search_type)
 
     def search_history(self, species, search_type="id"):
         """Search for historical assessments of a species.
@@ -185,4 +185,4 @@ class redList(object):
         species - species name or id
         search_type - whether you're searching by name or id
         """
-        return search_threats(species, Url.history, term_type=search_type) 
+        return _search_redlist(species, Url.history, term_type=search_type) 
