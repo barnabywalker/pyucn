@@ -1,0 +1,211 @@
+"""Class definition and associated functions for requesting data from
+IUCN Red List. Run as a script it downloads the latest Red List.
+You need an API token to use it, available from 
+http://apiv3.iucnredlist.org/api/v3/token.
+"""
+
+import requests
+import requests_cache
+import csv
+import datetime
+import time
+
+from argparse import ArgumentParser
+
+INFO_TYPES = ["redlist", "threats", "details", "habitats", "countries", 
+              "conservation_measures", "citations", "narratives", "growth_forms"]
+
+
+def region_list(token):
+    """Get the list of IUCN regions and identifiers"""
+
+    url = "http://apiv3.iucnredlist.org/api/v3/region/list"
+    response = requests.get(url, params={"token": token})
+    return {line["name"]: line["identifier"] for line in response.json()["results"]}
+
+
+def make_request(url, token):
+    """Utility to make a request and return JSON data"""
+
+    response = requests.get(url=url, params={"token": token})
+    response.raise_for_status()
+
+    json_response = response.json()
+    result = json_response.get("result", [])
+    if len(result) == 0:
+        return
+    else:
+        return result
+
+
+def make_throttle_hook(timeout=0.1):
+    """Returns a hook that sleeps for timeout seconds if response is
+    from cache.
+    """
+    def hook(response, *args, **kwargs):
+        if not getattr(response, "from_cache", False):
+            time.sleep(timeout)
+
+        return response
+
+    return hook
+
+
+class redListGetter(object):
+    """An object that gets data from the IUCN red list
+    """
+
+    def __init__(self, token=None, cache=True, cache_name=None, delay=0.5):
+        self.page_url = "http://apiv3.iucnredlist.org/api/v3/species/page/{}"
+
+        self.species_urls = {"details": "http://apiv3.iucnredlist.org/api/v3/species/{field}/{value}",
+                             "threats": "http://apiv3.iucnredlist.org/api/v3/threats/species/{field}/{value}",
+                             "habitats": "http://apiv3.iucnredlist.org/api/v3/habitats/species/{field}/{value}",
+                             "countries": "http://apiv3.iucnredlist.org/api/v3/species/countries/{field}/{value}",
+                             "conservation_measures": "http://apiv3.iucnredlist.org/api/v3/measures/species/{field}/{value}",
+                             "citations": "http://apiv3.iucnredlist.org/api/v3/species/citation/{field}/{value}",
+                             "narrative": "http://apiv3.iucnredlist.org/api/v3/species/narrative/{field}/{value}",
+                             "growth_forms": "http://apiv3.iucnredlist.org/api/v3/growth_forms/species/{field}/{value}"
+                            }
+        
+        if token is None:
+            raise ValueError("You must provide a token for the IUCN API")
+        else:
+            self.token = token
+
+        if cache_name is None:
+            self.cache_name = "redlist_api_cache"
+        else:
+            self.cache_name = cache_name
+
+        self.regions = region_list(self.token)
+
+        if cache:
+            requests_cache.install_cache(self.cache_name)
+            self.session = requests_cache.CachedSession()
+        else:
+            self.session = requests.Session()
+
+        self.session.hooks = {"response": make_throttle_hook(delay)}
+
+
+    def get_page(self, page):
+        """Request specific page of species data
+
+        parameters:
+        page - str, page number to request
+        """
+
+        return make_request(self.page_url.format(page), self.token)
+
+
+    def get_species_info(self, info_type, value, field="id", region=None):
+        """Get a given type of information (e.g. threats, habitats) for given
+        species name or id.
+
+        parameters:
+        info_type - str, the type of info to request, e.g. habitats
+        value - str, the species name or id to get info for
+        field - str, whether to query by species name or id
+        region - str, optional region to query within
+
+        returns:
+        json of response information
+        """
+        url = self.species_urls.get(info_type)
+
+        if not url:
+            raise(ValueError("There is no stored url for this information"))
+        else:
+            url = url.format(field=field, value=value)
+
+        if (field == "name") & (info_type == "details"):
+            url = url.replace("/name", "")
+
+        if field not in ["name", "id"]:
+            raise ValueError("Not a recognised species search field")
+
+        if region:
+            if region not in self.regions.values():
+                raise ValueError("Not a recognised region identifier")
+            else:
+                url = url + "/region/{}".format(region)
+
+        return make_request(url, self.token)
+
+
+    def get_all_pages(self):
+        """Run requests to get all of the species data"""
+
+        species_data = []
+
+        page_idx = 0
+        species_returned = None
+        while (page_idx == 0) | (species_returned is not None):
+            species_returned = self.get_page(page_idx)
+            
+            if species_returned:
+                species_data.extend(species_returned)
+
+            page_idx = page_idx + 1
+            
+        return species_data
+
+
+    def get_all_species_info(self, species_list, info_type, field="id", region=None):
+        """Get all of a particular type of info (e.g. threats) for a list of species
+        names or ids.
+
+        parameters:
+        species_list - list of species names or ids to query
+        info_type - str, the type of info to request, e.g. habitats
+        field - str, whether to query by species name or id
+        region - str, optional region to query within
+
+        returns:
+        list of query results
+        """
+        returned_data = []
+        for species in species_list:
+            results = self.get_species_info(info_type, species, field=field, region=region)
+            if results is not None:
+                returned_data.extend(results)
+
+        return returned_data
+
+
+    def get_region_identifier(self, region):
+        """Utility to get a region identifier for a region"""
+
+        if region not in self.regions:
+            raise KeyError("Not a recognised region")
+
+        return self.regions.get(region)
+
+
+def main():
+    parser = ArgumentParser(description="download information from the Red List API")
+    parser.add_argument("-t", "--token", help="Access token for Red List API")
+    parser.add_argument("-o", "--outfile", help="Name of file to save redlist to")
+    args = parser.parse_args()
+
+    if not args.token:
+        raise ValueError("No token provided for API, you must provide a token")
+
+    save_file = args.outfile
+    if save_file is None:
+        date = datetime.datetime.now()
+        save_file = "../output/redlist_download_{date}.csv".format(date=date.strftime("%Y%m%d"))
+
+    getter = redListGetter(token=args.token)
+    redlist = getter.get_all_pages()
+    
+    with open(save_file, "w", newline="") as outfile:
+        writer = csv.DictWriter(outfile, fieldnames=redlist[0].keys())
+        writer.writeheader()
+        writer.writerows(redlist)
+
+
+if __name__ == "__main__":
+    main()
+
