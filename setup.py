@@ -26,6 +26,8 @@ VERSION = "0.1.0"
 REQUIRED = [
     "requests",
     "requests-cache",
+    "ipython",
+    "ipywidgets"
     # 'requests', 'maya', 'records',
 ]
 
