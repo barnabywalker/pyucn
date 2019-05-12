@@ -152,7 +152,12 @@ class redList(object):
         species - species name or id
         search_type - whether you're searching by name or id
         """
-        return self._search_redlist(species, Url.citation, term_type=search_type)
+        omit_type = False
+
+        if search_type == "name":
+            omit_type = True
+
+        return self._search_redlist(species, Url.citation, term_type=search_type, omit_type=omit_type)
 
     def search_narrative(self, species, search_type="id"):
         """Search for the assessment narrative of a species.
@@ -166,7 +171,7 @@ class redList(object):
         if search_type == "name":
             omit_type = True
 
-        return self._search_redlist(species, Url.narrative, term_type=search_type)
+        return self._search_redlist(species, Url.narrative, term_type=search_type, omit_type=omit_type)
 
     def search_forms(self, species, search_type="id"):
         """Search for growth forms of a species.
