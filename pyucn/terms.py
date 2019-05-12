@@ -3,11 +3,16 @@ from enum import Enum
 class Url(Enum):
     redlist = "http://apiv3.iucnredlist.org/api/v3/species/"
     species = "http://apiv3.iucnredlist.org/api/v3/species/"
-    threats = "http://apiv3.iucnredlist.org/api/v3/threats/"
+    # bad url
+    threats = "http://apiv3.iucnredlist.org/api/v3/threats/species/"
     habitats = "http://apiv3.iucnredlist.org/api/v3/habitats/species/"
-    countries = "http://apiv3.iucnredlist.org/api/v3/species/countries"
+    # bad url
+    countries = "http://apiv3.iucnredlist.org/api/v3/species/countries/"
     conservation_measures = "http://apiv3.iucnredlist.org/api/v3/measures/species/"
+    # bad url
     citation = "http://apiv3.iucnredlist.org/api/v3/species/citation/"
+    # bad url
     narrative = "http://apiv3.iucnredlist.org/api/v3/species/narrative/"
     growth_forms = "http://apiv3.iucnredlist.org/api/v3/growth_forms/species/"
-    history = "http://apiv3.iucnredlist.org/api/v3/history/"
+    # bad url
+    history = "http://apiv3.iucnredlist.org/api/v3/species/history/"
