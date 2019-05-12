@@ -68,7 +68,7 @@ class redList(object):
         parameters:
         page - str, page number to request
         """
-        url = Url.redlist.value + f'{page}'
+        url = Url.redlist.value + f'page/{page}'
         
         return _make_request(url, self.token)
 
