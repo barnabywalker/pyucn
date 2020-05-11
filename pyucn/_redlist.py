@@ -8,6 +8,8 @@ import requests
 import requests_cache
 import time
 
+from datetime import timedelta
+
 from .terms import Url
 
 
@@ -42,7 +44,7 @@ class redList(object):
     """An object that gets data from the IUCN red list
     """
 
-    def __init__(self, token=None, cache=True, cache_name=None, delay=0.5):        
+    def __init__(self, token=None, cache=True, cache_name=None, delay=0.5, cache_expiry=1):        
         if token is None:
             raise ValueError("You must provide a token for the IUCN API")
         else:
@@ -54,8 +56,8 @@ class redList(object):
             self.cache_name = cache_name
 
         if cache:
-            requests_cache.install_cache(self.cache_name)
-            self.session = requests_cache.CachedSession()
+            self.session = requests_cache.CachedSession(self.cache_name, expire_after=timedelta(days=cache_expiry))
+            self.session.cache.remove_old_entries()
         else:
             self.session = requests.Session()
 
