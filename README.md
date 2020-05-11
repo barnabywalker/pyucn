@@ -1,6 +1,6 @@
 # pyucn
 
-This is a Python wrapper for the [IUCN Red List API]().
+This is a Python wrapper for the [IUCN Red List API](https://apiv3.iucnredlist.org/api/v3/docs).
 
 I should have implemented all of the endpoints listed on the API website, but there may be
 some missing.
